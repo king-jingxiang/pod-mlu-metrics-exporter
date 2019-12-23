@@ -1,0 +1,67 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: pod-mlu-metrics-exporter
+  namespace: kube-system
+spec:
+  template:
+    metadata:
+      labels:
+        app: pod-mlu-metrics-exporter
+      name: pod-mlu-metrics-exporter
+    spec:
+      containers:
+      - image: ruanxingbaozi/pod-mlu-metrics-exporter:mlu
+        name: pod-cambricon-mlu-metrics-exporter
+        ports:
+        - name: mlu-metrics
+          containerPort: 9410
+          hostPort: 9410
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+        - name: pod-mlu-resources
+          readOnly: true
+          mountPath: /var/lib/kubelet/pod-resources
+        - name: device-metrics
+          readOnly: true
+          mountPath: /run/prometheus
+      - image: cnmon-expoter:v0.1
+        name: cambricon-mlu-exporter
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+        volumeMounts:
+        - name: device-metrics
+          mountPath: /run/prometheus
+      volumes:
+      - name: pod-mlu-resources
+        hostPath:
+          path: /var/lib/kubelet/pod-resources
+      - name: device-metrics
+        emptyDir:
+          medium: Memory
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: pod-mlu-metrics-svc
+  annotations:
+    prometheus.io/port: "9410"
+    prometheus.io/path: "/mlu/metrics"
+    prometheus.io/scrape: "true"
+  name: pod-mlu-metrics-svc
+  namespace: kube-system
+spec:
+  type: NodePort
+  ports:
+    - port: 9410
+      targetPort: 9410
+      nodePort: 31400
+  selector:
+    app: pod-mlu-metrics-exporter

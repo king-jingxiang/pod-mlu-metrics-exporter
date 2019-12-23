@@ -1,0 +1,12 @@
+FROM golang:1.11 as build
+
+WORKDIR /go/src/pod-mlu-metrics-exporter
+COPY src .
+
+RUN go install -v pod-mlu-metrics-exporter
+
+FROM debian:stretch-slim
+
+COPY --from=build /go/bin/pod-mlu-metrics-exporter /usr/bin/pod-mlu-metrics-exporter
+
+ENTRYPOINT ["pod-mlu-metrics-exporter", "-logtostderr"]

@@ -1,0 +1,89 @@
+#! /bin/bash
+
+set -u
+
+HOST_ENGINE=no
+COLLECT_INTERVAL_S=5
+OUTPUT_FILE=/run/prometheus/cnmon.prom
+
+if [ "${COLLECT_INTERVAL_S}" -lt 1 ]; then
+    usage && exit 1
+fi
+
+mkdir -p $(dirname ${OUTPUT_FILE})
+#trap 'echo "Caught signal, terminating..."' HUP INT QUIT PIPE TERM
+
+if [ "${HOST_ENGINE}" = "yes" ]; then
+    echo "Starting host engine..."
+fi
+
+echo "Collecting metrics at ${OUTPUT_FILE} every ${COLLECT_INTERVAL_S}ms..."
+
+out=$OUTPUT_FILE
+
+for((;;)); do
+  for mlu in $(cnmon info | grep Card | awk '{print $NF}');do
+
+    mlu_info=$(cnmon info -c $mlu)
+
+    sn=$(echo -e "${mlu_info}" | grep SN | head -n 1 | awk '{print $NF}')
+    mlu_board_utilization=$(echo -e "${mlu_info}" | grep Board | head -n 1 | awk '{print $(NF-1)}')
+    mlu_mlu_temp=$(echo -e "${mlu_info}" | grep Board | tail -n 1 | awk '{print $(NF-1)}')
+    mlu_pm_used=$(echo -e "${mlu_info}" | grep Used | head -n 1 | awk '{print $(NF-1)}')
+    mlu_pm_free=$(echo -e "${mlu_info}" | grep Free | head -n 1 | awk '{print $(NF-1)}')
+    mlu_vm_used=$(echo -e "${mlu_info}" | grep Used | tail -n 1 | awk '{print $(NF-1)}')
+    mlu_vm_free=$(echo -e "${mlu_info}" | grep Free | tail -n 1 | awk '{print $(NF-1)}')
+
+    if [ $mlu == 0 ]; then
+      printf "# HELP HELP cnmon_mlu_temp GPU temperature (in C). \n" >> $out".swp"
+      printf "# TYPE cnmon_mlu_temp guage \n" >> $out".swp"
+    fi
+    printf 'cnmon_mlu_temp{mlu="%s",uuid="%s"} %s\n' ${mlu} ${sn} ${mlu_mlu_temp} >> $out".swp"
+
+    if [ $mlu == 0 ]; then
+      printf "# HELP cnmon_mlu_board_utilization MLU utilization (in %%). \n" >> $out".swp"
+      printf "# TYPE cnmon_mlu_board_utilization guage \n" >> $out".swp"
+    fi
+    printf 'cnmon_mlu_board_utilization{mlu="%s",uuid="%s"} %s\n' ${mlu} ${sn} ${mlu_board_utilization} >> $out".swp"
+
+    if [ $mlu == 0 ]; then
+      printf "# HELP cnmon_physical_memory_used/free MLU utilization (in MB). \n" >> $out".swp"
+      printf "# TYPE cnmon_physical_memory_used/free guage\n" >> $out".swp"
+    fi
+    printf 'cnmon_physical_memory_used{mlu="%s",uuid="%s"} %s\n' ${mlu} ${sn} ${mlu_pm_used} >> $out".swp"
+    printf 'cnmon_physical_memory_free{mlu="%s",uuid="%s"} %s\n' ${mlu} ${sn} ${mlu_pm_free} >> $out".swp"
+
+    if [ $mlu == 0 ]; then
+      printf "# HELP cnmon_virtual_memory_used/free MLU utilization (in MB). \n" >> $out".swp"
+      printf "# TYPE cnmon_virtual_memory_used/free guage\n" >> $out".swp"
+    fi
+    printf 'cnmon_virtual_memory_used{mlu="%s",uuid="%s"} %s\n' ${mlu}, ${sn}, ${mlu_vm_used} >> $out".swp"
+    printf 'cnmon_virtual_memory_free{mlu="%s",uuid="%s"} %s\n' ${mlu}, ${sn}, ${mlu_vm_free} >> $out".swp"
+
+  done
+  mv $out".swp" $out
+  sleep $COLLECT_INTERVAL_S
+done
+
+if [ "${HOST_ENGINE}" = "yes" ]; then
+    echo "Stopping host engine..."
+
+    if [ -f /run/nvhostengine.pid ]; then
+        pid=$(< /run/nvhostengine.pid)
+
+        kill -SIGTERM "${pid}"
+        for i in $(seq 1 100); do
+            kill -0 "${pid}" 2> /dev/null || break
+            sleep 0.1
+        done
+        if [ $i -eq 100 ]; then
+            echo "Could not stop host engine" >&2
+            kill -9 "${pid}" 2> /dev/null
+            exit 1
+        fi
+        rm -f /run/nvhostengine.pid
+    fi
+fi
+
+echo "Done"
+exit 0
