@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   creationTimestamp: null
   name: prometheus-config
-  namespace: monitoring
+  namespace: kube-system
 data:
   prometheus.yaml: |
     global:
@@ -14,9 +14,9 @@ data:
       static_configs:
       - targets:
         - localhost:9090
-    - job_name: gpuResourceName_metrics
+    - job_name: mlu_metrics
       scrape_interval: 1s
-      metrics_path: /gpuResourceName/metrics
+      metrics_path: /mlu/metrics
       scheme: http
       static_configs:
       - targets:

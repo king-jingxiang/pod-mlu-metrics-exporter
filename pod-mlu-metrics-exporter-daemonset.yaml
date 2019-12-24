@@ -11,7 +11,7 @@ spec:
       name: pod-mlu-metrics-exporter
     spec:
       containers:
-      - image: ruanxingbaozi/pod-mlu-metrics-exporter:mlu
+      - image: ruanxingbaozi/pod-mlu-metrics-exporter:v0.1
         name: pod-cambricon-mlu-metrics-exporter
         ports:
         - name: mlu-metrics
@@ -30,11 +30,12 @@ spec:
         - name: device-metrics
           readOnly: true
           mountPath: /run/prometheus
-      - image: cnmon-expoter:v0.1
+      - image: ruanxingbaozi/cambricon-cnmon-exporter:v0.1
         name: cambricon-mlu-exporter
         securityContext:
-          runAsNonRoot: false
-          runAsUser: 0
+          privileged: true
+          capabilities:
+            drop: ["ALL"]
         volumeMounts:
         - name: device-metrics
           mountPath: /run/prometheus

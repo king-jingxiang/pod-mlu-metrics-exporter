@@ -121,7 +121,6 @@ func addPodInfoToMetrics(dir string, srcFile string, destFile string, deviceToPo
 			}
 			return fmt.Errorf("error reading %s: %v", srcFile, err)
 		}
-
 		// Skip comments and add pod info
 		if string(line[0]) != "#" {
 			uuid := strings.Split(strings.Split(line, ",")[1], "\"")[1]

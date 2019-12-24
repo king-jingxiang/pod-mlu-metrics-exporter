@@ -27,6 +27,7 @@ for((;;)); do
     mlu_info=$(cnmon info -c $mlu)
 
     sn=$(echo -e "${mlu_info}" | grep SN | head -n 1 | awk '{print $NF}')
+    uuid="MLU-"$(echo $sn | sed 's/^.//g')
     mlu_board_utilization=$(echo -e "${mlu_info}" | grep Board | head -n 1 | awk '{print $(NF-1)}')
     mlu_mlu_temp=$(echo -e "${mlu_info}" | grep Board | tail -n 1 | awk '{print $(NF-1)}')
     mlu_pm_used=$(echo -e "${mlu_info}" | grep Used | head -n 1 | awk '{print $(NF-1)}')
@@ -35,30 +36,38 @@ for((;;)); do
     mlu_vm_free=$(echo -e "${mlu_info}" | grep Free | tail -n 1 | awk '{print $(NF-1)}')
 
     if [ $mlu == 0 ]; then
-      printf "# HELP HELP cnmon_mlu_temp GPU temperature (in C). \n" >> $out".swp"
-      printf "# TYPE cnmon_mlu_temp guage \n" >> $out".swp"
+      printf "# HELP HELP cnmon_mlu_temp MLU temperature (in C).\n" >> $out".swp"
+      printf "# TYPE cnmon_mlu_temp gauge\n" >> $out".swp"
     fi
-    printf 'cnmon_mlu_temp{mlu="%s",uuid="%s"} %s\n' ${mlu} ${sn} ${mlu_mlu_temp} >> $out".swp"
+    printf 'cnmon_mlu_temp{mlu="%s",uuid="%s"} %s\n' ${mlu} ${uuid} ${mlu_mlu_temp} >> $out".swp"
 
     if [ $mlu == 0 ]; then
-      printf "# HELP cnmon_mlu_board_utilization MLU utilization (in %%). \n" >> $out".swp"
-      printf "# TYPE cnmon_mlu_board_utilization guage \n" >> $out".swp"
+      printf "# HELP cnmon_mlu_board_utilization MLU utilization (in %%).\n" >> $out".swp"
+      printf "# TYPE cnmon_mlu_board_utilization gauge\n" >> $out".swp"
     fi
-    printf 'cnmon_mlu_board_utilization{mlu="%s",uuid="%s"} %s\n' ${mlu} ${sn} ${mlu_board_utilization} >> $out".swp"
+    printf 'cnmon_mlu_board_utilization{mlu="%s",uuid="%s"} %s\n' ${mlu} ${uuid} ${mlu_board_utilization} >> $out".swp"
 
     if [ $mlu == 0 ]; then
-      printf "# HELP cnmon_physical_memory_used/free MLU utilization (in MB). \n" >> $out".swp"
-      printf "# TYPE cnmon_physical_memory_used/free guage\n" >> $out".swp"
+      printf "# HELP cnmon_physical_memory_used MLU utilization (in MB).\n" >> $out".swp"
+      printf "# TYPE cnmon_physical_memory_used gauge\n" >> $out".swp"
     fi
-    printf 'cnmon_physical_memory_used{mlu="%s",uuid="%s"} %s\n' ${mlu} ${sn} ${mlu_pm_used} >> $out".swp"
-    printf 'cnmon_physical_memory_free{mlu="%s",uuid="%s"} %s\n' ${mlu} ${sn} ${mlu_pm_free} >> $out".swp"
+    printf 'cnmon_physical_memory_used{mlu="%s",uuid="%s"} %s\n' ${mlu} ${uuid} ${mlu_pm_used} >> $out".swp"
+    if [ $mlu == 0 ]; then
+      printf "# HELP cnmon_physical_memory_free MLU utilization (in MB).\n" >> $out".swp"
+      printf "# TYPE cnmon_physical_memory_free gauge\n" >> $out".swp"
+    fi
+    printf 'cnmon_physical_memory_free{mlu="%s",uuid="%s"} %s\n' ${mlu} ${uuid} ${mlu_pm_free} >> $out".swp"
 
     if [ $mlu == 0 ]; then
-      printf "# HELP cnmon_virtual_memory_used/free MLU utilization (in MB). \n" >> $out".swp"
-      printf "# TYPE cnmon_virtual_memory_used/free guage\n" >> $out".swp"
+      printf "# HELP cnmon_virtual_memory_used MLU utilization (in MB).\n" >> $out".swp"
+      printf "# TYPE cnmon_virtual_memory_used gauge\n" >> $out".swp"
     fi
-    printf 'cnmon_virtual_memory_used{mlu="%s",uuid="%s"} %s\n' ${mlu}, ${sn}, ${mlu_vm_used} >> $out".swp"
-    printf 'cnmon_virtual_memory_free{mlu="%s",uuid="%s"} %s\n' ${mlu}, ${sn}, ${mlu_vm_free} >> $out".swp"
+    printf 'cnmon_virtual_memory_used{mlu="%s",uuid="%s"} %s\n' ${mlu} ${uuid} ${mlu_vm_used} >> $out".swp"
+    if [ $mlu == 0 ]; then
+      printf "# HELP cnmon_virtual_memory_free MLU utilization (in MB).\n" >> $out".swp"
+      printf "# TYPE cnmon_virtual_memory_free gauge\n" >> $out".swp"
+    fi
+    printf 'cnmon_virtual_memory_free{mlu="%s",uuid="%s"} %s\n' ${mlu} ${uuid} ${mlu_vm_free} >> $out".swp"
 
   done
   mv $out".swp" $out

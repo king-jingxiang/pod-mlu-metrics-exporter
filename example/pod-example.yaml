@@ -5,7 +5,7 @@ metadata:
 spec:
   restartPolicy: OnFailure
   containers:
-    - image: cambricon-test2:v0.4
+    - image: ruanxingbaozi/cambricon-cnmon-base
       name: pod1-ctr
       command: ["sleep"]
       args: ["100000"]
