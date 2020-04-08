@@ -128,6 +128,7 @@ func addPodInfoToMetrics(dir string, srcFile string, destFile string, deviceToPo
 				splitLine := strings.Split(line, "}")
 				line = fmt.Sprintf("%s,pod_name=\"%s\",pod_namespace=\"%s\",container_name=\"%s\"}%s", splitLine[0], pod.name, pod.namespace, pod.container, splitLine[1])
 			}
+			//glog.Infof("%v:%v",uuid,deviceToPodMap)
 		}
 
 		_, err = tmpF.WriteString(line)

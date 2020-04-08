@@ -27,7 +27,9 @@ for((;;)); do
     mlu_info=$(cnmon info -c $mlu)
 
     sn=$(echo -e "${mlu_info}" | grep SN | head -n 1 | awk '{print $NF}')
-    uuid="MLU-"$(echo $sn | sed 's/^.//g')
+    # 首个数字为0才去除
+    # uuid="MLU-"$(echo $sn | sed 's/^.//g')
+    uuid="MLU-${sn}"
     mlu_board_utilization=$(echo -e "${mlu_info}" | grep Board | head -n 1 | awk '{print $(NF-1)}')
     mlu_mlu_temp=$(echo -e "${mlu_info}" | grep Board | tail -n 1 | awk '{print $(NF-1)}')
     mlu_pm_used=$(echo -e "${mlu_info}" | grep Used | head -n 1 | awk '{print $(NF-1)}')
